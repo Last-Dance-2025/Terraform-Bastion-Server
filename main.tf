@@ -201,3 +201,39 @@ resource "aws_db_instance" "my_postgres_db" {
 data "aws_iam_instance_profile" "existing_profile" {
   name = var.existing_instance_profile_name
 }
+
+# --- 5. ECR (컨테이너 이미지 저장소) ---
+
+# 1. API 서버용 ECR 리포지토리
+resource "aws_ecr_repository" "api_server_ecr" {
+  name = "inha-capstone-04/api-server" # 리포지토리 이름 (구분자 '/' 사용 권장)
+
+  image_tag_mutability = "IMMUTABLE" # 태그 덮어쓰기 방지 (보안/운영 모범 사례)
+
+  image_scanning_configuration {
+    scan_on_push = true # 푸시할 때마다 이미지 취약점 스캔 (보안 모범 사례)
+  }
+
+  tags = {
+    Name    = "inha-capstone-04-api-server-ecr"
+    Project = "capstone"
+    Env     = "shared"
+  }
+}
+
+# 2. LiveKit 서버용 ECR 리포지토리
+resource "aws_ecr_repository" "livekit_server_ecr" {
+  name = "inha-capstone-04/livekit-server" # 리포지토리 이름
+
+  image_tag_mutability = "IMMUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name    = "inha-capstone-04-livekit-server-ecr"
+    Project = "capstone"
+    Env     = "shared"
+  }
+}
