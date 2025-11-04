@@ -40,6 +40,7 @@ resource "aws_s3_bucket" "my_bucket" {
 
   tags = {
     Name = "inha-capstone-04-s3-bucket"
+    Env  = "shared"
   }
 }
 
@@ -81,7 +82,7 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# 1. EC2 API 서버
+# 1. EC2 API 서버 (Prod)
 resource "aws_instance" "api_server" {
   ami           = data.aws_ssm_parameter.al2023_ami.value
   instance_type = var.instance_type
@@ -96,6 +97,7 @@ resource "aws_instance" "api_server" {
 
   tags = {
     Name = "inha-capstone-04-api-server"
+    Env  = "prod"
   }
 }
 
@@ -114,6 +116,24 @@ resource "aws_instance" "livekit_server" {
 
   tags = {
     Name = "inha-capstone-04-livekit-server"
+  }
+}
+
+# 3. EC2 API 서버 (Dev)
+resource "aws_instance" "api_server_dev" {
+  ami           = data.aws_ssm_parameter.al2023_ami.value
+  instance_type = var.instance_type # dev용으로 더 낮은 사양을 원하면 변수화 필요
+  
+  # main과 동일하게 첫 번째 서브넷에 배포
+  subnet_id = data.aws_subnets.target.ids[0]
+  
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id] # 동일한 SG 사용
+  key_name               = var.ec2_key_pair_name
+  iam_instance_profile   = data.aws_iam_instance_profile.existing_profile.name
+
+  tags = {
+    Name = "inha-capstone-04-api-server-dev"
+    Env  = "dev"
   }
 }
 
@@ -171,7 +191,7 @@ resource "aws_db_instance" "my_postgres_db" {
   tags = {
     Owner   = "inha-capstone-04"
     Project = "capstone"
-    Env     = "dev"
+    Env  = "shared"
   }
 }
 
