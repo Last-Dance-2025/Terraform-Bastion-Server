@@ -28,6 +28,30 @@ variable "my_bastion_ip" {
   }
 }
 
+# --- [추가됨] EC2 부팅 시 실행할 스크립트 정의 (DRY 원칙) ---
+locals {
+  docker_install_script = <<-EOF
+    #!/bin/bash
+    # Amazon Linux 2023 (AL2023) 기준
+    
+    # 1. 패키지 업데이트
+    dnf update -y
+    
+    # 2. Docker 설치
+    dnf install docker -y
+    
+    # 3. Docker 서비스 시작 및 부팅 시 활성화
+    systemctl start docker
+    systemctl enable docker
+    
+    # 4. ec2-user가 sudo 없이 docker 명령을 실행할 수 있도록 그룹에 추가
+    # (이 작업은 CI/CD 및 SSH 접속 시 매우 중요합니다)
+    usermod -aG docker ec2-user
+    
+    # 참고: 'usermod' 변경 사항은 새 로그인 세션부터 적용됩니다.
+  EOF
+}
+
 # --- 1. S3 버킷 생성 ---
 
 # S3 버킷 이름이 고유해야 하므로 랜덤 문자열 추가
@@ -95,6 +119,8 @@ resource "aws_instance" "api_server" {
   key_name               = var.ec2_key_pair_name
   iam_instance_profile   = data.aws_iam_instance_profile.existing_profile.name
 
+  user_data = local.docker_install_script
+
   tags = {
     Name = "inha-capstone-04-api-server"
     Env  = "prod"
@@ -114,6 +140,8 @@ resource "aws_instance" "livekit_server" {
   key_name               = var.ec2_key_pair_name
   iam_instance_profile   = data.aws_iam_instance_profile.existing_profile.name
 
+  user_data = local.docker_install_script
+
   tags = {
     Name = "inha-capstone-04-livekit-server"
   }
@@ -130,6 +158,8 @@ resource "aws_instance" "api_server_dev" {
   vpc_security_group_ids = [aws_security_group.ec2_sg.id] # 동일한 SG 사용
   key_name               = var.ec2_key_pair_name
   iam_instance_profile   = data.aws_iam_instance_profile.existing_profile.name
+
+  user_data = local.docker_install_script
 
   tags = {
     Name = "inha-capstone-04-api-server-dev"
